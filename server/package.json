@@ -1,0 +1,14 @@
+{
+  "name": "invoice-scanner-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "@azure-rest/ai-document-intelligence": "^1.1.0",
+    "@azure/storage-blob": "^12.31.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "mssql": "^12.2.1"
+  }
+}

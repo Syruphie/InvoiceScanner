@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@azure-rest/ai-document-intelligence": "^1.1.0",
+    "@azure/storage-blob": "^12.31.0",
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
@@ -36,6 +37,7 @@
     "expo-system-ui": "~6.0.9",
     "expo-web-browser": "~15.0.10",
     "express": "^5.2.1",
+    "mssql": "^12.2.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",

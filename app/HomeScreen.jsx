@@ -1,6 +1,6 @@
-import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Alert,
   ScrollView,
@@ -9,55 +9,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-async function analyzeInvoiceFromImage(imageUri) {
-  const base64 = await FileSystem.readAsStringAsync(imageUri, {
-    encoding: "base64",
-  });
-
-  const response = await fetch("http://10.0.0.154:3000/analyze", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ base64 }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Backend failed");
-  }
-
-  return await response.json();
-}
-
-const recentScans = [
-  { id: "1", vendor: "Staples Inc.", date: "Apr 7, 2026", total: "$142.50" },
-  {
-    id: "2",
-    vendor: "Dell Technologies",
-    date: "Apr 3, 2026",
-    total: "$899.00",
-  },
-];
-
-function mapAzureToInvoiceData(result) {
-  const doc = result?.documents?.[0];
-  const f = doc?.fields || {};
-
-  return {
-    vendor: f?.VendorName?.content || "Unknown Vendor",
-    invoiceNo: f?.InvoiceId?.content || "N/A",
-    date: f?.InvoiceDate?.content || "N/A",
-    dueDate: f?.DueDate?.content || "N/A",
-    subtotal: f?.SubTotal?.content || "N/A",
-    tax: f?.TotalTax?.content || "N/A",
-    total: f?.InvoiceTotal?.content || "N/A",
-    confidence: doc?.confidence ? Math.round(doc.confidence * 100) : 0,
-  };
-}
+import { analyzeInvoiceFromImage, mapAzureToInvoiceData, getInvoices } from "../services/api";
 
 export default function HomeScreen({ navigation }) {
   const [isUploading, setIsUploading] = useState(false);
+  const [invoices, setInvoices] = useState([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      getInvoices().then(setInvoices).catch(console.error);
+    }, [])
+  );
 
   const handleUploadFromGallery = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -135,7 +97,7 @@ export default function HomeScreen({ navigation }) {
 
         <Text style={styles.recentLabel}>RECENT SCANS</Text>
 
-        {recentScans.map((item) => (
+        {invoices.map((item) => (
           <View key={item.id} style={styles.recentCard}>
             <View>
               <Text style={styles.recentName}>{item.vendor}</Text>

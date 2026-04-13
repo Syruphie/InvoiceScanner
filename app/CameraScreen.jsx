@@ -1,8 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { buildMockInvoiceData } from '../services/mockInvoice';
+import { useState } from 'react';
+import { analyzeInvoiceFromImage, mapAzureToInvoiceData } from '../services/api';
 
 export default function CameraScreen({ navigation }) {
+  const [isScanning, setIsScanning] = useState(false);
+
   const handleScan = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (permission.status !== 'granted') {
@@ -15,10 +18,21 @@ export default function CameraScreen({ navigation }) {
       const imageUri = result.assets?.[0]?.uri;
       const fileName = imageUri ? imageUri.split('/').pop() : 'camera_scan.jpg';
 
-      navigation.navigate('Results', {
-        data: buildMockInvoiceData('camera'),
-        meta: { imageUri, fileName, source: 'camera' },
-      });
+      try {
+        setIsScanning(true);
+        const analysisResult = await analyzeInvoiceFromImage(imageUri);
+        const formattedData = mapAzureToInvoiceData(analysisResult);
+
+        navigation.navigate('Results', {
+          data: formattedData,
+          meta: { imageUri, fileName, source: 'camera' },
+        });
+      } catch (err) {
+        console.error(err);
+        Alert.alert('Scan failed', 'Something went wrong while processing the image.');
+      } finally {
+        setIsScanning(false);
+      }
     }
   };
 
@@ -42,8 +56,10 @@ export default function CameraScreen({ navigation }) {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.shutter} onPress={handleScan}>
-          <View style={styles.shutterInner} />
+        <TouchableOpacity style={styles.shutter} onPress={handleScan} disabled={isScanning}>
+          {isScanning
+            ? <ActivityIndicator color="#fff" />
+            : <View style={styles.shutterInner} />}
         </TouchableOpacity>
       </View>
     </View>

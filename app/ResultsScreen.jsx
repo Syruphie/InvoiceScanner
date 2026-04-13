@@ -39,9 +39,6 @@ export default function ResultsScreen({ route }) {
         <InvoiceField label="Total" value={data.total} isTotal />
       </View>
 
-      <Text style={styles.helperText}>
-        Ready for backend connection when your API endpoint is available.
-      </Text>
     </ScrollView>
   );
 }
