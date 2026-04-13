@@ -1,7 +1,8 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Stack } from "expo-router";
 import InvoiceField from "../components/InvoiceField";
 
-export default function ResultsScreen({ route }) {
+export default function ResultsScreen({ route, navigation }) {
   const { data } = route.params;
   const meta = route.params?.meta ?? {};
   const fileName = meta.fileName || "invoice_scan.jpg";
@@ -19,6 +20,11 @@ export default function ResultsScreen({ route }) {
 
   return (
     <ScrollView style={styles.container}>
+      <Stack.Screen options={{ headerBackVisible: false }} />
+      {meta.imageUri ? (
+        <Image source={{ uri: meta.imageUri }} style={styles.image} resizeMode="contain" />
+      ) : null}
+
       <View style={styles.previewCard}>
         <View style={styles.thumb}>
           <Text style={styles.thumbIcon}>📄</Text>
@@ -39,12 +45,23 @@ export default function ResultsScreen({ route }) {
         <InvoiceField label="Total" value={data.total} isTotal />
       </View>
 
+      <TouchableOpacity style={styles.homeBtn} onPress={() => navigation.popToTop()}>
+        <Text style={styles.homeBtnText}>Return to Home</Text>
+      </TouchableOpacity>
+
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16 },
+  image: {
+    width: "100%",
+    height: 260,
+    borderRadius: 10,
+    backgroundColor: "#f0f0f0",
+    marginBottom: 12,
+  },
   previewCard: {
     backgroundColor: "#f5f5f5",
     borderRadius: 10,
@@ -81,10 +98,17 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 4,
   },
-  helperText: {
-    color: "#6a6a6a",
-    fontSize: 12,
-    marginTop: 14,
+  homeBtn: {
+    backgroundColor: "#185FA5",
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 16,
     marginBottom: 32,
+  },
+  homeBtnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

@@ -8,7 +8,7 @@ const {
   getLongRunningPoller,
   isUnexpected,
 } = require("@azure-rest/ai-document-intelligence");
-const { BlobServiceClient } = require("@azure/storage-blob");
+const { BlobServiceClient, BlobSASPermissions } = require("@azure/storage-blob");
 const { pool: sqlPool, sql } = require("./services/db");
 
 const app = express();
@@ -31,7 +31,17 @@ async function uploadToBlob(buffer) {
     blobHTTPHeaders: { blobContentType: "image/jpeg" },
   });
 
-  return blockBlobClient.url;
+  // Generate a SAS URL valid for 1 year
+  const expiresOn = new Date();
+  expiresOn.setFullYear(expiresOn.getFullYear() + 1);
+
+  const sasUrl = await blockBlobClient.generateSasUrl({
+    permissions: BlobSASPermissions.parse("r"),
+    expiresOn,
+  });
+
+  console.log("Generated SAS URL:", sasUrl);
+  return sasUrl;
 }
 
 app.post("/analyze", async (req, res) => {
@@ -88,7 +98,7 @@ app.post("/analyze", async (req, res) => {
       .input("tax", sql.NVarChar, tax)
       .input("total", sql.NVarChar, total)
       .input("confidence", sql.Int, confidence)
-      .input("blob_url", sql.NVarChar, blobUrl)
+      .input("blob_url", sql.NVarChar(sql.MAX), blobUrl)
       .query(`
         INSERT INTO invoices (vendor, invoice_no, date, due_date, subtotal, tax, total, confidence, blob_url)
         VALUES (@vendor, @invoice_no, @date, @due_date, @subtotal, @tax, @total, @confidence, @blob_url)
@@ -98,6 +108,38 @@ app.post("/analyze", async (req, res) => {
   } catch (error) {
     console.error("Backend error:", error);
     res.status(500).json({ error: "Analysis failed" });
+  }
+});
+
+app.get("/invoices/:id/image", async (req, res) => {
+  try {
+    const pool = await sqlPool;
+    const result = await pool.request()
+      .input("id", sql.Int, req.params.id)
+      .query("SELECT blob_url FROM invoices WHERE id = @id");
+
+    const blobUrl = result.recordset[0]?.blob_url;
+    if (!blobUrl) return res.status(404).json({ error: "Not found" });
+
+    const blobName = new URL(blobUrl).pathname.split("/").pop();
+
+    const blobServiceClient = BlobServiceClient.fromConnectionString(storageConnectionString);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    const expiresOn = new Date();
+    expiresOn.setHours(expiresOn.getHours() + 1);
+
+    const sasUrl = await blockBlobClient.generateSasUrl({
+      permissions: BlobSASPermissions.parse("r"),
+      expiresOn,
+    });
+
+    console.log("Generated SAS URL on demand:", sasUrl);
+    res.redirect(sasUrl);
+  } catch (error) {
+    console.error("Image fetch error:", error);
+    res.status(500).json({ error: "Failed to get image" });
   }
 });
 

@@ -98,13 +98,17 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.recentLabel}>RECENT SCANS</Text>
 
         {invoices.map((item) => (
-          <View key={item.id} style={styles.recentCard}>
+          <TouchableOpacity
+            key={item.id}
+            style={styles.recentCard}
+            onPress={() => navigation.navigate("ScanDetail", { invoice: item })}
+          >
             <View>
               <Text style={styles.recentName}>{item.vendor}</Text>
               <Text style={styles.recentDate}>{item.date}</Text>
             </View>
             <Text style={styles.recentAmount}>{item.total}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </ScrollView>
